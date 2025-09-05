@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Interview Bot</title>
+</head>
+<body>
+  <h1>LangChain Interview Bot</h1>
+  <div id="conversation"></div>
+  <p id="question"></p>
+  <input id="answer" type="text" placeholder="Type your answer" />
+  <button id="submit">Submit</button>
+  <script>
+    async function main() {
+      const qRes = await fetch('http://localhost:8000/questions');
+      const qData = await qRes.json();
+      const questions = qData.questions;
+      let index = 0;
+      const conversation = document.getElementById('conversation');
+      const questionEl = document.getElementById('question');
+      const answerEl = document.getElementById('answer');
+      const submitBtn = document.getElementById('submit');
+
+      function ask() {
+        if (index < questions.length) {
+          questionEl.textContent = questions[index];
+          answerEl.value = '';
+        } else {
+          questionEl.textContent = 'Interview complete.';
+          submitBtn.disabled = true;
+          fetch('http://localhost:8000/summary')
+            .then(r => r.json())
+            .then(data => {
+              const p = document.createElement('p');
+              p.textContent = 'Summary: ' + data.summary;
+              conversation.appendChild(p);
+            });
+        }
+      }
+
+      submitBtn.onclick = async () => {
+        const payload = { question: questions[index], answer: answerEl.value };
+        await fetch('http://localhost:8000/responses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const p = document.createElement('p');
+        p.textContent = `Q: ${questions[index]}\nA: ${answerEl.value}`;
+        conversation.appendChild(p);
+        index++;
+        ask();
+      };
+
+      ask();
+    }
+    main();
+  </script>
+</body>
+</html>
